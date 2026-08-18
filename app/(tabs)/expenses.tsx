@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+
 import {
   Alert,
   FlatList,
@@ -27,6 +28,10 @@ import {
 
 import { styles } from '../../styles/expenses.styles';
 
+// ========================================
+// TYPES
+// ========================================
+
 type Category = {
   name: string;
   emoji: string;
@@ -42,6 +47,10 @@ type Expense = {
   notes: string;
 };
 
+// ========================================
+// CATEGORIES
+// ========================================
+
 const categories: Category[] = [
   { name: 'Food', emoji: '🍔' },
   { name: 'Groceries', emoji: '🛒' },
@@ -53,51 +62,95 @@ const categories: Category[] = [
   { name: 'Other', emoji: '💸' },
 ];
 
-export default function ExpensesScreen() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [presets, setPresets] = useState<any[]>([]);
+// ========================================
+// SCREEN
+// ========================================
 
-  const [presetName, setPresetName] = useState('');
-  const [presetAmount, setPresetAmount] = useState('');
+export default function ExpensesScreen() {
+  const [expenses, setExpenses] =
+    useState<Expense[]>([]);
+
+  const [presets, setPresets] =
+    useState<any[]>([]);
+
+  // ========================================
+  // PRESET FORM
+  // ========================================
+
+  const [presetName, setPresetName] =
+    useState('');
+
+  const [presetAmount, setPresetAmount] =
+    useState('');
+
   const [presetCategory, setPresetCategory] =
     useState('Transport');
-  const [presetNotes, setPresetNotes] = useState('');
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const [presetModalVisible, setPresetModalVisible] =
+  const [presetNotes, setPresetNotes] =
+    useState('');
+
+  // ========================================
+  // MODALS
+  // ========================================
+
+  const [modalVisible, setModalVisible] =
     useState(false);
+
+  const [
+    presetModalVisible,
+    setPresetModalVisible,
+  ] = useState(false);
+
+  // ========================================
+  // EDITING
+  // ========================================
 
   const [editingExpense, setEditingExpense] =
     useState<Expense | null>(null);
 
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
-  const [selectedCategory, setSelectedCategory] =
-    useState('Food');
-  const [notes, setNotes] = useState('');
+  // ========================================
+  // EXPENSE FORM
+  // ========================================
 
-  const [selectedDate, setSelectedDate] = useState(
-    new Date()
-  );
+  const [amount, setAmount] =
+    useState('');
+
+  const [description, setDescription] =
+    useState('');
+
+  const [
+    selectedCategory,
+    setSelectedCategory,
+  ] = useState('Food');
+
+  const [notes, setNotes] =
+    useState('');
+
+  const [selectedDate, setSelectedDate] =
+    useState(new Date());
 
   const [calendarVisible, setCalendarVisible] =
     useState(false);
+
+  // ========================================
+  // INITIAL LOAD
+  // ========================================
 
   useEffect(() => {
     loadExpenses();
     loadPresets();
   }, []);
 
-  // =========================
+  // ========================================
   // LOAD EXPENSES
-  // =========================
+  // ========================================
 
   const loadExpenses = async () => {
     try {
       const data = await getExpenses();
 
-      const formattedExpenses: Expense[] = data.map(
-        (item) => ({
+      const formattedExpenses: Expense[] =
+        data.map((item) => ({
           id: Number(item.id),
           name: item.description,
           category: item.category,
@@ -105,8 +158,7 @@ export default function ExpensesScreen() {
           emoji: item.emoji,
           date: item.date,
           notes: item.notes ?? '',
-        })
-      );
+        }));
 
       setExpenses(formattedExpenses);
     } catch (error) {
@@ -117,13 +169,14 @@ export default function ExpensesScreen() {
     }
   };
 
-  // =========================
+  // ========================================
   // LOAD PRESETS
-  // =========================
+  // ========================================
 
   const loadPresets = async () => {
     try {
       const data = await getPresets();
+
       setPresets(data);
     } catch (error) {
       console.error(
@@ -133,9 +186,9 @@ export default function ExpensesScreen() {
     }
   };
 
-  // =========================
-  // FORM
-  // =========================
+  // ========================================
+  // RESET FORM
+  // ========================================
 
   const resetForm = () => {
     setAmount('');
@@ -147,130 +200,233 @@ export default function ExpensesScreen() {
     setCalendarVisible(false);
   };
 
+  // ========================================
+  // CLOSE EXPENSE MODAL
+  // ========================================
+
   const closeModal = () => {
     resetForm();
     setModalVisible(false);
   };
 
-  // =========================
+  // ========================================
   // EDIT EXPENSE
-  // =========================
+  // ========================================
 
-  const openEditExpense = (expense: Expense) => {
+  const openEditExpense = (
+    expense: Expense
+  ) => {
     setEditingExpense(expense);
 
-    setAmount(expense.amount.toString());
+    setAmount(
+      expense.amount.toString()
+    );
+
     setDescription(expense.name);
-    setSelectedCategory(expense.category);
+
+    setSelectedCategory(
+      expense.category
+    );
+
     setNotes(expense.notes);
 
-    const [year, month, day] = expense.date
+    const [
+      year,
+      month,
+      day,
+    ] = expense.date
       .split('-')
       .map(Number);
 
     setSelectedDate(
-      new Date(year, month - 1, day)
+      new Date(
+        year,
+        month - 1,
+        day
+      )
     );
 
     setCalendarVisible(false);
     setModalVisible(true);
   };
 
-  // =========================
+  // ========================================
   // DELETE EXPENSE
-  // =========================
+  // ========================================
 
-  const handleDeleteExpense = (
-    expense: Expense
+  const handleDeleteExpense = async (
+    expenseId: number
   ) => {
+    // Find the expense currently in state
+    const expense = expenses.find(
+      (item) => item.id === expenseId
+    );
+
+    if (!expense) {
+      console.error(
+        'Expense not found:',
+        expenseId
+      );
+
+      return;
+    }
+
+    const deleteIt = async () => {
+      try {
+        console.log(
+          'Deleting expense ID:',
+          expenseId
+        );
+
+        // Delete from IndexedDB
+        await deleteExpense(
+          expenseId
+        );
+
+        console.log(
+          'Successfully deleted:',
+          expenseId
+        );
+
+        // Immediately remove from UI
+        setExpenses((current) =>
+          current.filter(
+            (item) =>
+              item.id !== expenseId
+          )
+        );
+
+      } catch (error) {
+        console.error(
+          'Failed to delete expense:',
+          error
+        );
+
+        if (Platform.OS === 'web') {
+          window.alert(
+            'Could not delete this expense.'
+          );
+        } else {
+          Alert.alert(
+            'Error',
+            'Could not delete this expense.'
+          );
+        }
+      }
+    };
+
+    // ========================================
+    // WEB
+    // ========================================
+
+    if (Platform.OS === 'web') {
+      const confirmed =
+        window.confirm(
+          `Delete "${expense.name}" for ₱${expense.amount.toLocaleString(
+            'en-PH',
+            {
+              minimumFractionDigits: 2,
+            }
+          )}?`
+        );
+
+      if (confirmed) {
+        await deleteIt();
+      }
+
+      return;
+    }
+
+    // ========================================
+    // IOS / ANDROID
+    // ========================================
+
     Alert.alert(
       'Delete Expense',
+
       `Delete "${expense.name}" for ₱${expense.amount.toLocaleString(
         'en-PH',
         {
           minimumFractionDigits: 2,
         }
       )}?`,
+
       [
         {
           text: 'Cancel',
           style: 'cancel',
         },
+
         {
           text: 'Delete',
           style: 'destructive',
-
-          onPress: async () => {
-            try {
-              console.log(
-                'Deleting expense:',
-                expense.id
-              );
-
-              await deleteExpense(
-                expense.id
-              );
-
-              setExpenses((current) =>
-                current.filter(
-                  (item) =>
-                    item.id !== expense.id
-                )
-              );
-
-              await loadExpenses();
-            } catch (error) {
-              console.error(
-                'Failed to delete expense:',
-                error
-              );
-
-              Alert.alert(
-                'Error',
-                'Could not delete this expense.'
-              );
-            }
-          },
+          onPress: deleteIt,
         },
       ]
     );
   };
 
-  // =========================
+  // ========================================
   // DATE
-  // =========================
+  // ========================================
 
-  const formatDate = (date: Date) => {
-    return date.toISOString().split('T')[0];
+  const formatDate = (
+    date: Date
+  ) => {
+    return date
+      .toISOString()
+      .split('T')[0];
   };
 
-  const formatDisplayDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    });
+  const formatDisplayDate = (
+    date: Date
+  ) => {
+    return date.toLocaleDateString(
+      'en-US',
+      {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      }
+    );
   };
 
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
+  // ========================================
+  // CALENDAR DAYS
+  // ========================================
 
-    const firstDay = new Date(
-      year,
-      month,
-      1
-    ).getDay();
+  const getDaysInMonth = (
+    date: Date
+  ) => {
+    const year =
+      date.getFullYear();
 
-    const daysInMonth = new Date(
-      year,
-      month + 1,
-      0
-    ).getDate();
+    const month =
+      date.getMonth();
 
-    const days: (number | null)[] = [];
+    const firstDay =
+      new Date(
+        year,
+        month,
+        1
+      ).getDay();
 
-    for (let i = 0; i < firstDay; i++) {
+    const daysInMonth =
+      new Date(
+        year,
+        month + 1,
+        0
+      ).getDate();
+
+    const days: (
+      number | null
+    )[] = [];
+
+    for (
+      let i = 0;
+      i < firstDay;
+      i++
+    ) {
       days.push(null);
     }
 
@@ -285,90 +441,126 @@ export default function ExpensesScreen() {
     return days;
   };
 
-  const changeMonth = (amount: number) => {
+  // ========================================
+  // CHANGE MONTH
+  // ========================================
+
+  const changeMonth = (
+    amount: number
+  ) => {
     setSelectedDate(
       new Date(
         selectedDate.getFullYear(),
-        selectedDate.getMonth() + amount,
+        selectedDate.getMonth() +
+          amount,
         1
       )
     );
   };
 
-  const selectDate = (day: number) => {
-    const newDate = new Date(
-      selectedDate.getFullYear(),
-      selectedDate.getMonth(),
-      day
-    );
+  // ========================================
+  // SELECT DATE
+  // ========================================
+
+  const selectDate = (
+    day: number
+  ) => {
+    const newDate =
+      new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        day
+      );
 
     setSelectedDate(newDate);
     setCalendarVisible(false);
   };
 
-  // =========================
+  // ========================================
   // SAVE EXPENSE
-  // =========================
+  // ========================================
 
-  const saveExpenseForm = async () => {
-    const numericAmount = Number(amount);
+  const saveExpenseForm =
+    async () => {
+      const numericAmount =
+        Number(amount);
 
-    if (
-      !amount ||
-      numericAmount <= 0 ||
-      !description.trim()
-    ) {
-      return;
-    }
-
-    const selectedCategoryData =
-      categories.find(
-        (category) =>
-          category.name === selectedCategory
-      );
-
-    try {
-      const expenseData = {
-        amount: numericAmount,
-        description: description.trim(),
-        category: selectedCategory,
-        emoji:
-          selectedCategoryData?.emoji ?? '💸',
-        date: formatDate(selectedDate),
-        notes: notes.trim(),
-      };
-
-      if (editingExpense) {
-        await updateExpense(
-          editingExpense.id,
-          expenseData
-        );
-      } else {
-        await saveExpense(expenseData);
+      if (
+        !amount ||
+        numericAmount <= 0 ||
+        !description.trim()
+      ) {
+        return;
       }
 
-      await loadExpenses();
-      closeModal();
-    } catch (error) {
-      console.error(
-        'Failed to save expense:',
-        error
-      );
-    }
-  };
+      const selectedCategoryData =
+        categories.find(
+          (category) =>
+            category.name ===
+            selectedCategory
+        );
 
-  // =========================
-  // QUICK ADD PRESET
-  // =========================
+      try {
+        const expenseData = {
+          amount: numericAmount,
 
-  const usePreset = async (preset: any) => {
+          description:
+            description.trim(),
+
+          category:
+            selectedCategory,
+
+          emoji:
+            selectedCategoryData?.emoji ??
+            '💸',
+
+          date:
+            formatDate(
+              selectedDate
+            ),
+
+          notes:
+            notes.trim(),
+        };
+
+        if (editingExpense) {
+          await updateExpense(
+            editingExpense.id,
+            expenseData
+          );
+        } else {
+          await saveExpense(
+            expenseData
+          );
+        }
+
+        await loadExpenses();
+
+        closeModal();
+      } catch (error) {
+        console.error(
+          'Failed to save expense:',
+          error
+        );
+      }
+    };
+
+  // ========================================
+  // USE PRESET
+  // ========================================
+
+  const usePreset = async (
+    preset: any
+  ) => {
     try {
       await addExpenseFromPreset({
         amount: preset.amount,
         name: preset.name,
-        category: preset.category,
+        category:
+          preset.category,
         emoji: preset.emoji,
-        notes: preset.notes ?? '',
+        notes:
+          preset.notes ?? '',
       });
 
       await loadExpenses();
@@ -380,9 +572,9 @@ export default function ExpensesScreen() {
     }
   };
 
-  // =========================
+  // ========================================
   // SAVE PRESET
-  // =========================
+  // ========================================
 
   const savePreset = async () => {
     const numericAmount =
@@ -399,28 +591,41 @@ export default function ExpensesScreen() {
     const selectedCategoryData =
       categories.find(
         (category) =>
-          category.name === presetCategory
+          category.name ===
+          presetCategory
       );
 
     try {
       await addPreset({
-        name: presetName.trim(),
-        amount: numericAmount,
-        category: presetCategory,
+        name:
+          presetName.trim(),
+
+        amount:
+          numericAmount,
+
+        category:
+          presetCategory,
+
         emoji:
           selectedCategoryData?.emoji ??
           '💸',
-        notes: presetNotes.trim(),
+
+        notes:
+          presetNotes.trim(),
       });
 
       await loadPresets();
 
       setPresetName('');
       setPresetAmount('');
-      setPresetCategory('Transport');
+      setPresetCategory(
+        'Transport'
+      );
       setPresetNotes('');
 
-      setPresetModalVisible(false);
+      setPresetModalVisible(
+        false
+      );
     } catch (error) {
       console.error(
         'Failed to save preset:',
@@ -429,31 +634,51 @@ export default function ExpensesScreen() {
     }
   };
 
-  // =========================
-  // INPUT STYLE
-  // =========================
+  // ========================================
+  // WEB INPUT STYLE
+  // ========================================
 
-  const webInputStyle = Platform.select({
-    web: {
-      outlineStyle: 'none' as const,
-      outlineWidth: 0,
-      outlineColor: 'transparent',
-    },
-    default: {},
-  });
+  const webInputStyle =
+    Platform.select({
+      web: {
+        outlineStyle:
+          'none' as const,
+
+        outlineWidth: 0,
+
+        outlineColor:
+          'transparent',
+      },
+
+      default: {},
+    });
+
+  // ========================================
+  // RENDER
+  // ========================================
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+    >
 
+      {/* ================================== */}
       {/* HEADER */}
+      {/* ================================== */}
 
-      <View style={styles.header}>
+      <View
+        style={styles.header}
+      >
         <View>
-          <Text style={styles.title}>
+          <Text
+            style={styles.title}
+          >
             Expenses
           </Text>
 
-          <Text style={styles.subtitle}>
+          <Text
+            style={styles.subtitle}
+          >
             Track where your money goes
           </Text>
         </View>
@@ -461,30 +686,55 @@ export default function ExpensesScreen() {
         <Pressable
           style={styles.addButton}
           onPress={() =>
-            setModalVisible(true)
+            setModalVisible(
+              true
+            )
           }
         >
-          <Text style={styles.addButtonText}>
+          <Text
+            style={
+              styles.addButtonText
+            }
+          >
             +
           </Text>
         </Pressable>
       </View>
 
+      {/* ================================== */}
       {/* QUICK ADD */}
+      {/* ================================== */}
 
-      <View style={styles.quickAddSection}>
-
-        <View style={styles.quickAddHeader}>
-          <Text style={styles.quickAddTitle}>
+      <View
+        style={
+          styles.quickAddSection
+        }
+      >
+        <View
+          style={
+            styles.quickAddHeader
+          }
+        >
+          <Text
+            style={
+              styles.quickAddTitle
+            }
+          >
             Quick Add
           </Text>
 
           <Pressable
             onPress={() =>
-              setPresetModalVisible(true)
+              setPresetModalVisible(
+                true
+              )
             }
           >
-            <Text style={styles.managePresets}>
+            <Text
+              style={
+                styles.managePresets
+              }
+            >
               + Add Preset
             </Text>
           </Pressable>
@@ -493,7 +743,9 @@ export default function ExpensesScreen() {
         <FlatList
           horizontal
           data={presets}
-          showsHorizontalScrollIndicator={false}
+          showsHorizontalScrollIndicator={
+            false
+          }
           keyExtractor={(item) =>
             item.id.toString()
           }
@@ -501,29 +753,54 @@ export default function ExpensesScreen() {
             styles.presetList
           }
           ListEmptyComponent={
-            <View style={styles.noPresets}>
-              <Text style={styles.noPresetsText}>
-                No presets yet. Add one for
-                expenses you use often.
+            <View
+              style={
+                styles.noPresets
+              }
+            >
+              <Text
+                style={
+                  styles.noPresetsText
+                }
+              >
+                No presets yet. Add one
+                for expenses you use
+                often.
               </Text>
             </View>
           }
-          renderItem={({ item }) => (
+          renderItem={({
+            item,
+          }) => (
             <Pressable
-              style={styles.presetCard}
+              style={
+                styles.presetCard
+              }
               onPress={() =>
                 usePreset(item)
               }
             >
-              <Text style={styles.presetEmoji}>
+              <Text
+                style={
+                  styles.presetEmoji
+                }
+              >
                 {item.emoji}
               </Text>
 
-              <Text style={styles.presetName}>
+              <Text
+                style={
+                  styles.presetName
+                }
+              >
                 {item.name}
               </Text>
 
-              <Text style={styles.presetAmount}>
+              <Text
+                style={
+                  styles.presetAmount
+                }
+              >
                 ₱
                 {item.amount.toLocaleString(
                   'en-PH',
@@ -535,42 +812,76 @@ export default function ExpensesScreen() {
             </Pressable>
           )}
         />
-
       </View>
 
+      {/* ================================== */}
       {/* EXPENSE LIST */}
+      {/* ================================== */}
 
       <FlatList
         data={expenses}
         keyExtractor={(item) =>
           item.id.toString()
         }
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
+        contentContainerStyle={
+          styles.list
+        }
+        showsVerticalScrollIndicator={
+          false
+        }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyEmoji}>
+          <View
+            style={
+              styles.emptyContainer
+            }
+          >
+            <Text
+              style={
+                styles.emptyEmoji
+              }
+            >
               💸
             </Text>
 
-            <Text style={styles.emptyTitle}>
+            <Text
+              style={
+                styles.emptyTitle
+              }
+            >
               No expenses yet
             </Text>
 
-            <Text style={styles.emptyText}>
-              Tap + to record your first expense.
+            <Text
+              style={
+                styles.emptyText
+              }
+            >
+              Tap + to record your
+              first expense.
             </Text>
           </View>
         }
-        renderItem={({ item }) => (
+        renderItem={({
+          item,
+        }) => (
           <ReanimatedSwipeable
             renderRightActions={() => (
-              <View style={styles.swipeActions}>
+              <View
+                style={
+                  styles.swipeActions
+                }
+              >
+
+                {/* EDIT */}
 
                 <Pressable
-                  style={styles.editAction}
+                  style={
+                    styles.editAction
+                  }
                   onPress={() =>
-                    openEditExpense(item)
+                    openEditExpense(
+                      item
+                    )
                   }
                 >
                   <Ionicons
@@ -580,11 +891,18 @@ export default function ExpensesScreen() {
                   />
                 </Pressable>
 
+                {/* DELETE */}
+
                 <Pressable
-                  style={styles.deleteAction}
-                  onPress={() =>
-                    handleDeleteExpense(item)
+                  style={
+                    styles.deleteAction
                   }
+                  onPress={() =>
+                    handleDeleteExpense(
+                      item.id
+                    )
+                  }
+                  hitSlop={10}
                 >
                   <Ionicons
                     name="trash-outline"
@@ -596,39 +914,68 @@ export default function ExpensesScreen() {
               </View>
             )}
           >
-            <View style={styles.expenseCard}>
-
-              <View style={styles.expenseLeft}>
-
-                <View style={styles.iconContainer}>
-                  <Text style={styles.emoji}>
+            <View
+              style={
+                styles.expenseCard
+              }
+            >
+              <View
+                style={
+                  styles.expenseLeft
+                }
+              >
+                <View
+                  style={
+                    styles.iconContainer
+                  }
+                >
+                  <Text
+                    style={
+                      styles.emoji
+                    }
+                  >
                     {item.emoji}
                   </Text>
                 </View>
 
                 <View>
-                  <Text style={styles.expenseName}>
+                  <Text
+                    style={
+                      styles.expenseName
+                    }
+                  >
                     {item.name}
                   </Text>
 
                   <View
-                    style={styles.categoryRow}
+                    style={
+                      styles.categoryRow
+                    }
                   >
                     <Text
-                      style={styles.category}
+                      style={
+                        styles.category
+                      }
                     >
                       {item.category}
                     </Text>
 
-                    <Text style={styles.date}>
+                    <Text
+                      style={
+                        styles.date
+                      }
+                    >
                       • {item.date}
                     </Text>
                   </View>
                 </View>
-
               </View>
 
-              <Text style={styles.expenseAmount}>
+              <Text
+                style={
+                  styles.expenseAmount
+                }
+              >
                 -₱
                 {item.amount.toLocaleString(
                   'en-PH',
@@ -637,46 +984,68 @@ export default function ExpensesScreen() {
                   }
                 )}
               </Text>
-
             </View>
           </ReanimatedSwipeable>
         )}
       />
 
+      {/* ================================== */}
       {/* ADD / EDIT EXPENSE MODAL */}
+      {/* ================================== */}
 
       <Modal
         animationType="slide"
         transparent
         visible={modalVisible}
-        onRequestClose={closeModal}
+        onRequestClose={
+          closeModal
+        }
       >
         <KeyboardAvoidingView
-          style={styles.modalOverlay}
+          style={
+            styles.modalOverlay
+          }
           behavior={
             Platform.OS === 'ios'
               ? 'padding'
               : undefined
           }
         >
-          <View style={styles.modal}>
-
+          <View
+            style={styles.modal}
+          >
             <ScrollView
-              showsVerticalScrollIndicator={false}
+              showsVerticalScrollIndicator={
+                false
+              }
               keyboardShouldPersistTaps="handled"
             >
 
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
+              <View
+                style={
+                  styles.modalHeader
+                }
+              >
+                <Text
+                  style={
+                    styles.modalTitle
+                  }
+                >
                   {editingExpense
                     ? 'Edit Expense'
                     : 'Add Expense'}
                 </Text>
 
                 <Pressable
-                  onPress={closeModal}
+                  onPress={
+                    closeModal
+                  }
                 >
-                  <Text style={styles.closeButton}>
+                  <Text
+                    style={
+                      styles.closeButton
+                    }
+                  >
                     ✕
                   </Text>
                 </Pressable>
@@ -684,12 +1053,24 @@ export default function ExpensesScreen() {
 
               {/* AMOUNT */}
 
-              <Text style={styles.inputLabel}>
+              <Text
+                style={
+                  styles.inputLabel
+                }
+              >
                 Amount
               </Text>
 
-              <View style={styles.amountContainer}>
-                <Text style={styles.currency}>
+              <View
+                style={
+                  styles.amountContainer
+                }
+              >
+                <Text
+                  style={
+                    styles.currency
+                  }
+                >
                   ₱
                 </Text>
 
@@ -702,13 +1083,19 @@ export default function ExpensesScreen() {
                   placeholderTextColor="#AAAAAA"
                   keyboardType="decimal-pad"
                   value={amount}
-                  onChangeText={setAmount}
+                  onChangeText={
+                    setAmount
+                  }
                 />
               </View>
 
               {/* DESCRIPTION */}
 
-              <Text style={styles.inputLabel}>
+              <Text
+                style={
+                  styles.inputLabel
+                }
+              >
                 Description
               </Text>
 
@@ -719,26 +1106,42 @@ export default function ExpensesScreen() {
                 ]}
                 placeholder="What did you spend on?"
                 placeholderTextColor="#999"
-                value={description}
-                onChangeText={setDescription}
+                value={
+                  description
+                }
+                onChangeText={
+                  setDescription
+                }
               />
 
               {/* CATEGORY */}
 
-              <Text style={styles.inputLabel}>
+              <Text
+                style={
+                  styles.inputLabel
+                }
+              >
                 Category
               </Text>
 
-              <View style={styles.categoryGrid}>
+              <View
+                style={
+                  styles.categoryGrid
+                }
+              >
                 {categories.map(
-                  (category) => {
+                  (
+                    category
+                  ) => {
                     const isSelected =
                       selectedCategory ===
                       category.name;
 
                     return (
                       <Pressable
-                        key={category.name}
+                        key={
+                          category.name
+                        }
                         style={[
                           styles.categoryButton,
                           isSelected &&
@@ -755,7 +1158,9 @@ export default function ExpensesScreen() {
                             styles.categoryEmoji
                           }
                         >
-                          {category.emoji}
+                          {
+                            category.emoji
+                          }
                         </Text>
 
                         <Text
@@ -765,7 +1170,9 @@ export default function ExpensesScreen() {
                               styles.categoryButtonTextSelected,
                           ]}
                         >
-                          {category.name}
+                          {
+                            category.name
+                          }
                         </Text>
                       </Pressable>
                     );
@@ -775,34 +1182,54 @@ export default function ExpensesScreen() {
 
               {/* DATE */}
 
-              <Text style={styles.inputLabel}>
+              <Text
+                style={
+                  styles.inputLabel
+                }
+              >
                 Date
               </Text>
 
               <Pressable
-                style={styles.dateInput}
+                style={
+                  styles.dateInput
+                }
                 onPress={() =>
                   setCalendarVisible(
                     !calendarVisible
                   )
                 }
               >
-                <Text style={styles.dateIcon}>
+                <Text
+                  style={
+                    styles.dateIcon
+                  }
+                >
                   📅
                 </Text>
 
-                <Text style={styles.dateText}>
+                <Text
+                  style={
+                    styles.dateText
+                  }
+                >
                   {formatDisplayDate(
                     selectedDate
                   )}
                 </Text>
 
-                <Text style={styles.dateArrow}>
+                <Text
+                  style={
+                    styles.dateArrow
+                  }
+                >
                   {calendarVisible
                     ? '⌃'
                     : '›'}
                 </Text>
               </Pressable>
+
+              {/* CALENDAR */}
 
               {calendarVisible && (
                 <View
@@ -817,7 +1244,9 @@ export default function ExpensesScreen() {
                   >
                     <Pressable
                       onPress={() =>
-                        changeMonth(-1)
+                        changeMonth(
+                          -1
+                        )
                       }
                       style={
                         styles.monthButton
@@ -840,15 +1269,19 @@ export default function ExpensesScreen() {
                       {selectedDate.toLocaleDateString(
                         'en-US',
                         {
-                          month: 'long',
-                          year: 'numeric',
+                          month:
+                            'long',
+                          year:
+                            'numeric',
                         }
                       )}
                     </Text>
 
                     <Pressable
                       onPress={() =>
-                        changeMonth(1)
+                        changeMonth(
+                          1
+                        )
                       }
                       style={
                         styles.monthButton
@@ -864,7 +1297,11 @@ export default function ExpensesScreen() {
                     </Pressable>
                   </View>
 
-                  <View style={styles.weekRow}>
+                  <View
+                    style={
+                      styles.weekRow
+                    }
+                  >
                     {[
                       'SUN',
                       'MON',
@@ -873,29 +1310,41 @@ export default function ExpensesScreen() {
                       'THU',
                       'FRI',
                       'SAT',
-                    ].map((day) => (
-                      <Text
-                        key={day}
-                        style={
-                          styles.weekDay
-                        }
-                      >
-                        {day}
-                      </Text>
-                    ))}
+                    ].map(
+                      (day) => (
+                        <Text
+                          key={day}
+                          style={
+                            styles.weekDay
+                          }
+                        >
+                          {day}
+                        </Text>
+                      )
+                    )}
                   </View>
 
-                  <View style={styles.daysGrid}>
+                  <View
+                    style={
+                      styles.daysGrid
+                    }
+                  >
                     {getDaysInMonth(
                       selectedDate
                     ).map(
-                      (day, index) => {
+                      (
+                        day,
+                        index
+                      ) => {
                         if (
-                          day === null
+                          day ===
+                          null
                         ) {
                           return (
                             <View
-                              key={index}
+                              key={
+                                index
+                              }
                               style={
                                 styles.dayCell
                               }
@@ -909,12 +1358,16 @@ export default function ExpensesScreen() {
 
                         return (
                           <Pressable
-                            key={index}
+                            key={
+                              index
+                            }
                             style={
                               styles.dayCell
                             }
                             onPress={() =>
-                              selectDate(day)
+                              selectDate(
+                                day
+                              )
                             }
                           >
                             <View
@@ -944,10 +1397,16 @@ export default function ExpensesScreen() {
 
               {/* NOTES */}
 
-              <Text style={styles.inputLabel}>
+              <Text
+                style={
+                  styles.inputLabel
+                }
+              >
                 Notes{' '}
                 <Text
-                  style={styles.optional}
+                  style={
+                    styles.optional
+                  }
                 >
                   (Optional)
                 </Text>
@@ -963,7 +1422,9 @@ export default function ExpensesScreen() {
                 multiline
                 numberOfLines={3}
                 value={notes}
-                onChangeText={setNotes}
+                onChangeText={
+                  setNotes
+                }
                 textAlignVertical="top"
               />
 
@@ -976,7 +1437,9 @@ export default function ExpensesScreen() {
                     !description.trim()) &&
                     styles.saveButtonDisabled,
                 ]}
-                onPress={saveExpenseForm}
+                onPress={
+                  saveExpenseForm
+                }
                 disabled={
                   !amount ||
                   !description.trim()
@@ -993,9 +1456,15 @@ export default function ExpensesScreen() {
                 </Text>
               </Pressable>
 
+              {/* CANCEL */}
+
               <Pressable
-                style={styles.cancelButton}
-                onPress={closeModal}
+                style={
+                  styles.cancelButton
+                }
+                onPress={
+                  closeModal
+                }
               >
                 <Text
                   style={
@@ -1011,42 +1480,67 @@ export default function ExpensesScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
+      {/* ================================== */}
       {/* CREATE PRESET MODAL */}
+      {/* ================================== */}
 
       <Modal
         animationType="slide"
         transparent
-        visible={presetModalVisible}
+        visible={
+          presetModalVisible
+        }
         onRequestClose={() =>
-          setPresetModalVisible(false)
+          setPresetModalVisible(
+            false
+          )
         }
       >
         <KeyboardAvoidingView
-          style={styles.modalOverlay}
+          style={
+            styles.modalOverlay
+          }
           behavior={
             Platform.OS === 'ios'
               ? 'padding'
               : undefined
           }
         >
-          <View style={styles.modal}>
-
+          <View
+            style={styles.modal}
+          >
             <ScrollView
-              showsVerticalScrollIndicator={false}
+              showsVerticalScrollIndicator={
+                false
+              }
               keyboardShouldPersistTaps="handled"
             >
 
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
+              <View
+                style={
+                  styles.modalHeader
+                }
+              >
+                <Text
+                  style={
+                    styles.modalTitle
+                  }
+                >
                   Create Preset
                 </Text>
 
                 <Pressable
                   onPress={() =>
-                    setPresetModalVisible(false)
+                    setPresetModalVisible(
+                      false
+                    )
                   }
                 >
-                  <Text style={styles.closeButton}>
+                  <Text
+                    style={
+                      styles.closeButton
+                    }
+                  >
                     ✕
                   </Text>
                 </Pressable>
@@ -1054,7 +1548,11 @@ export default function ExpensesScreen() {
 
               {/* NAME */}
 
-              <Text style={styles.inputLabel}>
+              <Text
+                style={
+                  styles.inputLabel
+                }
+              >
                 Name
               </Text>
 
@@ -1065,18 +1563,34 @@ export default function ExpensesScreen() {
                 ]}
                 placeholder="e.g. Daily Transpo"
                 placeholderTextColor="#999"
-                value={presetName}
-                onChangeText={setPresetName}
+                value={
+                  presetName
+                }
+                onChangeText={
+                  setPresetName
+                }
               />
 
               {/* AMOUNT */}
 
-              <Text style={styles.inputLabel}>
+              <Text
+                style={
+                  styles.inputLabel
+                }
+              >
                 Amount
               </Text>
 
-              <View style={styles.amountContainer}>
-                <Text style={styles.currency}>
+              <View
+                style={
+                  styles.amountContainer
+                }
+              >
+                <Text
+                  style={
+                    styles.currency
+                  }
+                >
                   ₱
                 </Text>
 
@@ -1088,64 +1602,94 @@ export default function ExpensesScreen() {
                   placeholder="0.00"
                   placeholderTextColor="#AAAAAA"
                   keyboardType="decimal-pad"
-                  value={presetAmount}
-                  onChangeText={setPresetAmount}
+                  value={
+                    presetAmount
+                  }
+                  onChangeText={
+                    setPresetAmount
+                  }
                 />
               </View>
 
               {/* CATEGORY */}
 
-              <Text style={styles.inputLabel}>
+              <Text
+                style={
+                  styles.inputLabel
+                }
+              >
                 Category
               </Text>
 
-              <View style={styles.categoryGrid}>
-                {categories.map((category) => {
-                  const isSelected =
-                    presetCategory ===
-                    category.name;
+              <View
+                style={
+                  styles.categoryGrid
+                }
+              >
+                {categories.map(
+                  (
+                    category
+                  ) => {
+                    const isSelected =
+                      presetCategory ===
+                      category.name;
 
-                  return (
-                    <Pressable
-                      key={category.name}
-                      style={[
-                        styles.categoryButton,
-                        isSelected &&
-                          styles.categoryButtonSelected,
-                      ]}
-                      onPress={() =>
-                        setPresetCategory(
+                    return (
+                      <Pressable
+                        key={
                           category.name
-                        )
-                      }
-                    >
-                      <Text
-                        style={
-                          styles.categoryEmoji
+                        }
+                        style={[
+                          styles.categoryButton,
+                          isSelected &&
+                            styles.categoryButtonSelected,
+                        ]}
+                        onPress={() =>
+                          setPresetCategory(
+                            category.name
+                          )
                         }
                       >
-                        {category.emoji}
-                      </Text>
+                        <Text
+                          style={
+                            styles.categoryEmoji
+                          }
+                        >
+                          {
+                            category.emoji
+                          }
+                        </Text>
 
-                      <Text
-                        style={[
-                          styles.categoryButtonText,
-                          isSelected &&
-                            styles.categoryButtonTextSelected,
-                        ]}
-                      >
-                        {category.name}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+                        <Text
+                          style={[
+                            styles.categoryButtonText,
+                            isSelected &&
+                              styles.categoryButtonTextSelected,
+                          ]}
+                        >
+                          {
+                            category.name
+                          }
+                        </Text>
+                      </Pressable>
+                    );
+                  }
+                )}
               </View>
 
               {/* NOTES */}
 
-              <Text style={styles.inputLabel}>
+              <Text
+                style={
+                  styles.inputLabel
+                }
+              >
                 Notes{' '}
-                <Text style={styles.optional}>
+                <Text
+                  style={
+                    styles.optional
+                  }
+                >
                   (Optional)
                 </Text>
               </Text>
@@ -1158,8 +1702,12 @@ export default function ExpensesScreen() {
                 placeholder="e.g. Daily commute"
                 placeholderTextColor="#999"
                 multiline
-                value={presetNotes}
-                onChangeText={setPresetNotes}
+                value={
+                  presetNotes
+                }
+                onChangeText={
+                  setPresetNotes
+                }
                 textAlignVertical="top"
               />
 
@@ -1170,17 +1718,27 @@ export default function ExpensesScreen() {
                   styles.saveButton,
                   (!presetName.trim() ||
                     !presetAmount ||
-                    Number(presetAmount) <= 0) &&
+                    Number(
+                      presetAmount
+                    ) <= 0) &&
                     styles.saveButtonDisabled,
                 ]}
-                onPress={savePreset}
+                onPress={
+                  savePreset
+                }
                 disabled={
                   !presetName.trim() ||
                   !presetAmount ||
-                  Number(presetAmount) <= 0
+                  Number(
+                    presetAmount
+                  ) <= 0
                 }
               >
-                <Text style={styles.saveButtonText}>
+                <Text
+                  style={
+                    styles.saveButtonText
+                  }
+                >
                   Save Preset
                 </Text>
               </Pressable>
@@ -1188,9 +1746,13 @@ export default function ExpensesScreen() {
               {/* CANCEL */}
 
               <Pressable
-                style={styles.cancelButton}
+                style={
+                  styles.cancelButton
+                }
                 onPress={() =>
-                  setPresetModalVisible(false)
+                  setPresetModalVisible(
+                    false
+                  )
                 }
               >
                 <Text
