@@ -1,7 +1,8 @@
-const CACHE_NAME = 'budgeting-app-v1';
+const BASE_PATH = '/budgeting-app';
+const CACHE_NAME = 'budgeting-app-v2';
 
 const APP_SHELL = [
-  '/',
+  `${BASE_PATH}/`,
 ];
 
 self.addEventListener('install', (event) => {
@@ -30,6 +31,18 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') {
+    return;
+  }
+
+  const requestUrl = new URL(event.request.url);
+
+  // Only handle requests belonging to this app.
+  if (
+    !requestUrl.pathname.startsWith(
+      `${BASE_PATH}/`
+    ) &&
+    requestUrl.pathname !== BASE_PATH
+  ) {
     return;
   }
 
@@ -65,7 +78,9 @@ self.addEventListener('fetch', (event) => {
             return response;
           })
           .catch(() => {
-            return caches.match('/');
+            return caches.match(
+              `${BASE_PATH}/`
+            );
           });
       }
     )
