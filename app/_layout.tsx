@@ -1,24 +1,64 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  View,
+} from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+import { initializeDatabase } from '../database/database';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const [databaseReady, setDatabaseReady] =
+    useState(false);
+
+  useEffect(() => {
+    async function setupDatabase() {
+      try {
+        await initializeDatabase();
+
+        console.log('Database initialized');
+
+        setDatabaseReady(true);
+      } catch (error) {
+        console.error(
+          'Database initialization failed:',
+          error
+        );
+      }
+    }
+
+    setupDatabase();
+  }, []);
+
+  if (!databaseReady) {
+    return (
+      <GestureHandlerRootView
+        style={{ flex: 1 }}
+      >
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: '#F7F7F7',
+          }}
+        >
+          <ActivityIndicator size="small" />
+        </View>
+      </GestureHandlerRootView>
+    );
+  }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <GestureHandlerRootView
+      style={{ flex: 1 }}
+    >
+      <Stack
+        screenOptions={{
+          headerShown: false,
+        }}
+      />
+    </GestureHandlerRootView>
   );
 }
