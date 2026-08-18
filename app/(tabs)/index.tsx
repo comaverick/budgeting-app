@@ -23,7 +23,7 @@ import {
   setWeeklyGoal,
 } from '../../database/database';
 
-import { styles } from './index.styles';
+import { styles } from '../../styles/index.styles';
 
 type Expense = {
   id: number;
