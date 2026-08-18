@@ -1,48 +1,198 @@
-import * as SQLite from 'expo-sqlite';
+import {
+  openDB,
+  type DBSchema,
+  type IDBPDatabase,
+} from 'idb';
 
-let db: SQLite.SQLiteDatabase;
+// ========================================
+// TYPES
+// ========================================
+
+export type Expense = {
+  id: number;
+  amount: number;
+  description: string;
+  category: string;
+  emoji: string;
+  date: string;
+  notes: string | null;
+};
+
+export type Preset = {
+  id: number;
+  name: string;
+  amount: number;
+  category: string;
+  emoji: string;
+  notes: string | null;
+};
+
+export type Budget = {
+  id: number;
+  category: string;
+  amount: number;
+};
+
+export type SpendingGoal = {
+  id: number;
+  weekly_limit: number;
+};
+
+// ========================================
+// INDEXEDDB SCHEMA
+// ========================================
+
+interface BudgetingDB extends DBSchema {
+  expenses: {
+    key: number;
+    value: Expense;
+    indexes: {
+      'by-date': string;
+      'by-category': string;
+    };
+  };
+
+  budgets: {
+    key: number;
+    value: Budget;
+    indexes: {
+      'by-category': string;
+    };
+  };
+
+  presets: {
+    key: number;
+    value: Preset;
+  };
+
+  spending_goals: {
+    key: number;
+    value: SpendingGoal;
+  };
+}
+
+// ========================================
+// DATABASE
+// ========================================
+
+let db: IDBPDatabase<BudgetingDB> | null = null;
 
 export async function initializeDatabase() {
-  db = await SQLite.openDatabaseAsync('budget.db');
+  if (db) {
+    return db;
+  }
 
-  await db.execAsync(`
-    PRAGMA journal_mode = WAL;
+  db = await openDB<BudgetingDB>(
+    'budget.db',
+    1,
+    {
+      upgrade(database) {
+        // ========================================
+        // EXPENSES
+        // ========================================
 
-    CREATE TABLE IF NOT EXISTS expenses (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      amount REAL NOT NULL,
-      description TEXT NOT NULL,
-      category TEXT NOT NULL,
-      emoji TEXT NOT NULL,
-      date TEXT NOT NULL,
-      notes TEXT
-    );
+        if (
+          !database.objectStoreNames.contains(
+            'expenses'
+          )
+        ) {
+          const expenses =
+            database.createObjectStore(
+              'expenses',
+              {
+                keyPath: 'id',
+                autoIncrement: true,
+              }
+            );
 
-    CREATE TABLE IF NOT EXISTS budgets (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      category TEXT NOT NULL UNIQUE,
-      amount REAL NOT NULL
-    );
+          expenses.createIndex(
+            'by-date',
+            'date'
+          );
 
-    CREATE TABLE IF NOT EXISTS presets (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      amount REAL NOT NULL,
-      category TEXT NOT NULL,
-      emoji TEXT NOT NULL,
-      notes TEXT
-    );
+          expenses.createIndex(
+            'by-category',
+            'category'
+          );
+        }
 
-    CREATE TABLE IF NOT EXISTS spending_goals (
-      id INTEGER PRIMARY KEY CHECK (id = 1),
-      weekly_limit REAL NOT NULL
-    );
-  `);
+        // ========================================
+        // BUDGETS
+        // ========================================
+
+        if (
+          !database.objectStoreNames.contains(
+            'budgets'
+          )
+        ) {
+          const budgets =
+            database.createObjectStore(
+              'budgets',
+              {
+                keyPath: 'id',
+                autoIncrement: true,
+              }
+            );
+
+          budgets.createIndex(
+            'by-category',
+            'category',
+            {
+              unique: true,
+            }
+          );
+        }
+
+        // ========================================
+        // PRESETS
+        // ========================================
+
+        if (
+          !database.objectStoreNames.contains(
+            'presets'
+          )
+        ) {
+          database.createObjectStore(
+            'presets',
+            {
+              keyPath: 'id',
+              autoIncrement: true,
+            }
+          );
+        }
+
+        // ========================================
+        // SPENDING GOALS
+        // ========================================
+
+        if (
+          !database.objectStoreNames.contains(
+            'spending_goals'
+          )
+        ) {
+          database.createObjectStore(
+            'spending_goals',
+            {
+              keyPath: 'id',
+            }
+          );
+        }
+      },
+    }
+  );
 
   return db;
 }
 
-export function getDatabase() {
+// ========================================
+// GET DATABASE
+// ========================================
+
+export async function getDatabase() {
+  if (!db) {
+    await initializeDatabase();
+  }
+
   if (!db) {
     throw new Error(
       'Database has not been initialized.'
@@ -56,53 +206,57 @@ export function getDatabase() {
 // EXPENSES
 // ========================================
 
-export async function getExpenses() {
-  const database = getDatabase();
+export async function getExpenses(): Promise<
+  Expense[]
+> {
+  const database =
+    await getDatabase();
 
-  return await database.getAllAsync<{
-    id: number;
+  const expenses =
+    await database.getAll(
+      'expenses'
+    );
+
+  return expenses.sort(
+    (a, b) => b.id - a.id
+  );
+}
+
+// ========================================
+// ADD EXPENSE
+// ========================================
+
+export async function addExpense(
+  expense: {
     amount: number;
     description: string;
     category: string;
     emoji: string;
     date: string;
-    notes: string | null;
-  }>(
-    'SELECT * FROM expenses ORDER BY id DESC'
+    notes: string;
+  }
+) {
+  const database =
+    await getDatabase();
+
+  await database.add(
+    'expenses',
+    {
+      id: 0,
+      amount: expense.amount,
+      description:
+        expense.description,
+      category: expense.category,
+      emoji: expense.emoji,
+      date: expense.date,
+      notes: expense.notes,
+    }
   );
 }
 
-export async function addExpense(expense: {
-  amount: number;
-  description: string;
-  category: string;
-  emoji: string;
-  date: string;
-  notes: string;
-}) {
-  const database = getDatabase();
-
-  await database.runAsync(
-    `
-      INSERT INTO expenses
-      (
-        amount,
-        description,
-        category,
-        emoji,
-        date,
-        notes
-      )
-      VALUES (?, ?, ?, ?, ?, ?)
-    `,
-    expense.amount,
-    expense.description,
-    expense.category,
-    expense.emoji,
-    expense.date,
-    expense.notes
-  );
-}
+// ========================================
+// UPDATE EXPENSE
+// ========================================
 
 export async function updateExpense(
   id: number,
@@ -115,37 +269,48 @@ export async function updateExpense(
     notes: string;
   }
 ) {
-  const database = getDatabase();
+  const database =
+    await getDatabase();
 
-  await database.runAsync(
-    `
-      UPDATE expenses
-      SET
-        amount = ?,
-        description = ?,
-        category = ?,
-        emoji = ?,
-        date = ?,
-        notes = ?
-      WHERE id = ?
-    `,
-    expense.amount,
-    expense.description,
-    expense.category,
-    expense.emoji,
-    expense.date,
-    expense.notes,
-    id
+  const existing =
+    await database.get(
+      'expenses',
+      id
+    );
+
+  if (!existing) {
+    throw new Error(
+      `Expense with id ${id} not found.`
+    );
+  }
+
+  await database.put(
+    'expenses',
+    {
+      id,
+      amount: expense.amount,
+      description:
+        expense.description,
+      category: expense.category,
+      emoji: expense.emoji,
+      date: expense.date,
+      notes: expense.notes,
+    }
   );
 }
+
+// ========================================
+// DELETE EXPENSE
+// ========================================
 
 export async function deleteExpense(
   id: number
 ) {
-  const database = getDatabase();
+  const database =
+    await getDatabase();
 
-  await database.runAsync(
-    'DELETE FROM expenses WHERE id = ?',
+  await database.delete(
+    'expenses',
     id
   );
 }
@@ -154,60 +319,70 @@ export async function deleteExpense(
 // PRESETS
 // ========================================
 
-export async function getPresets() {
-  const database = getDatabase();
+export async function getPresets(): Promise<
+  Preset[]
+> {
+  const database =
+    await getDatabase();
 
-  return await database.getAllAsync<{
-    id: number;
+  const presets =
+    await database.getAll(
+      'presets'
+    );
+
+  return presets.sort(
+    (a, b) => b.id - a.id
+  );
+}
+
+// ========================================
+// ADD PRESET
+// ========================================
+
+export async function addPreset(
+  preset: {
     name: string;
     amount: number;
     category: string;
     emoji: string;
-    notes: string | null;
-  }>(
-    'SELECT * FROM presets ORDER BY id DESC'
+    notes: string;
+  }
+) {
+  const database =
+    await getDatabase();
+
+  await database.add(
+    'presets',
+    {
+      id: 0,
+      name: preset.name,
+      amount: preset.amount,
+      category: preset.category,
+      emoji: preset.emoji,
+      notes: preset.notes,
+    }
   );
 }
 
-export async function addPreset(preset: {
-  name: string;
-  amount: number;
-  category: string;
-  emoji: string;
-  notes: string;
-}) {
-  const database = getDatabase();
-
-  await database.runAsync(
-    `
-      INSERT INTO presets
-      (
-        name,
-        amount,
-        category,
-        emoji,
-        notes
-      )
-      VALUES (?, ?, ?, ?, ?)
-    `,
-    preset.name,
-    preset.amount,
-    preset.category,
-    preset.emoji,
-    preset.notes
-  );
-}
+// ========================================
+// DELETE PRESET
+// ========================================
 
 export async function deletePreset(
   id: number
 ) {
-  const database = getDatabase();
+  const database =
+    await getDatabase();
 
-  await database.runAsync(
-    'DELETE FROM presets WHERE id = ?',
+  await database.delete(
+    'presets',
     id
   );
 }
+
+// ========================================
+// ADD EXPENSE FROM PRESET
+// ========================================
 
 export async function addExpenseFromPreset(
   preset: {
@@ -218,30 +393,101 @@ export async function addExpenseFromPreset(
     notes: string;
   }
 ) {
-  const database = getDatabase();
+  const database =
+    await getDatabase();
 
   const today =
-    new Date().toISOString().split('T')[0];
+    new Date()
+      .toISOString()
+      .split('T')[0];
 
-  await database.runAsync(
-    `
-      INSERT INTO expenses
-      (
-        amount,
-        description,
+  await database.add(
+    'expenses',
+    {
+      id: 0,
+      amount: preset.amount,
+      description: preset.name,
+      category: preset.category,
+      emoji: preset.emoji,
+      date: today,
+      notes: preset.notes,
+    }
+  );
+}
+
+// ========================================
+// BUDGETS
+// ========================================
+
+export async function getBudgets(): Promise<
+  Budget[]
+> {
+  const database =
+    await getDatabase();
+
+  const budgets =
+    await database.getAll(
+      'budgets'
+    );
+
+  return budgets.sort(
+    (a, b) => b.id - a.id
+  );
+}
+
+// ========================================
+// ADD / UPDATE BUDGET
+// ========================================
+
+export async function setBudget(
+  category: string,
+  amount: number
+) {
+  const database =
+    await getDatabase();
+
+  const existing =
+    await database
+      .getAllFromIndex(
+        'budgets',
+        'by-category',
+        category
+      );
+
+  if (existing.length > 0) {
+    await database.put(
+      'budgets',
+      {
+        id: existing[0].id,
         category,
-        emoji,
-        date,
-        notes
-      )
-      VALUES (?, ?, ?, ?, ?, ?)
-    `,
-    preset.amount,
-    preset.name,
-    preset.category,
-    preset.emoji,
-    today,
-    preset.notes
+        amount,
+      }
+    );
+  } else {
+    await database.add(
+      'budgets',
+      {
+        id: 0,
+        category,
+        amount,
+      }
+    );
+  }
+}
+
+// ========================================
+// DELETE BUDGET
+// ========================================
+
+export async function deleteBudget(
+  id: number
+) {
+  const database =
+    await getDatabase();
+
+  await database.delete(
+    'budgets',
+    id
   );
 }
 
@@ -249,60 +495,33 @@ export async function addExpenseFromPreset(
 // WEEKLY SPENDING GOAL
 // ========================================
 
-export async function getWeeklyGoal() {
-  const database = getDatabase();
+export async function getWeeklyGoal(): Promise<
+  SpendingGoal | undefined
+> {
+  const database =
+    await getDatabase();
 
-  await database.execAsync(`
-    CREATE TABLE IF NOT EXISTS spending_goals (
-      id INTEGER PRIMARY KEY CHECK (id = 1),
-      weekly_limit REAL NOT NULL
-    );
-  `);
-
-  return await database.getFirstAsync<{
-    id: number;
-    weekly_limit: number;
-  }>(
-    'SELECT * FROM spending_goals WHERE id = 1'
+  return await database.get(
+    'spending_goals',
+    1
   );
 }
+
+// ========================================
+// SET WEEKLY GOAL
+// ========================================
 
 export async function setWeeklyGoal(
   amount: number
 ) {
-  const database = getDatabase();
+  const database =
+    await getDatabase();
 
-  await database.execAsync(`
-    CREATE TABLE IF NOT EXISTS spending_goals (
-      id INTEGER PRIMARY KEY CHECK (id = 1),
-      weekly_limit REAL NOT NULL
-    );
-  `);
-
-  const existing = await database.getFirstAsync<{
-    id: number;
-    weekly_limit: number;
-  }>(
-    'SELECT * FROM spending_goals WHERE id = 1'
+  await database.put(
+    'spending_goals',
+    {
+      id: 1,
+      weekly_limit: amount,
+    }
   );
-
-  if (existing) {
-    await database.runAsync(
-      `
-        UPDATE spending_goals
-        SET weekly_limit = ?
-        WHERE id = 1
-      `,
-      amount
-    );
-  } else {
-    await database.runAsync(
-      `
-        INSERT INTO spending_goals
-        (id, weekly_limit)
-        VALUES (1, ?)
-      `,
-      amount
-    );
-  }
 }
