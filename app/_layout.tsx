@@ -7,8 +7,9 @@ import {
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { initializeDatabase } from '../database/database';
-
+import { usePWA } from '../hooks/use-pwa';
 export default function RootLayout() {
+  usePWA();
   const [databaseReady, setDatabaseReady] =
     useState(false);
 

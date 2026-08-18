@@ -25,7 +25,7 @@ import {
   updateExpense,
 } from '../../database/database';
 
-import { styles } from './expenses.styles';
+import { styles } from '../../styles/expenses.styles';
 
 type Category = {
   name: string;
