@@ -27,13 +27,13 @@ function LiquidGlassTabBar({
   ).current;
 
   const routes = state.routes;
-
   const activeIndex = state.index;
 
   useEffect(() => {
     if (!barWidth) return;
 
-    const tabWidth = barWidth / routes.length;
+    const tabWidth =
+      barWidth / routes.length;
 
     Animated.spring(indicatorX, {
       toValue:
@@ -57,7 +57,10 @@ function LiquidGlassTabBar({
       style={[
         styles.wrapper,
         {
-          bottom: Math.max(insets.bottom, 12),
+          bottom: Math.max(
+            insets.bottom,
+            12
+          ),
         },
       ]}
     >
@@ -67,8 +70,10 @@ function LiquidGlassTabBar({
           tint="light"
           style={styles.blur}
         >
-          {/* Top glass reflection */}
-          <View style={styles.glassHighlight} />
+          {/* Glass reflection */}
+          <View
+            style={styles.glassHighlight}
+          />
 
           {/* Moving active glass */}
           {barWidth > 0 && (
@@ -79,13 +84,16 @@ function LiquidGlassTabBar({
                 {
                   transform: [
                     {
-                      translateX: indicatorX,
+                      translateX:
+                        indicatorX,
                     },
                   ],
                 },
               ]}
             >
-              <View style={styles.activeInner} />
+              <View
+                style={styles.activeInner}
+              />
             </Animated.View>
           )}
 
@@ -93,7 +101,8 @@ function LiquidGlassTabBar({
             style={styles.tabsContainer}
             onLayout={(event) => {
               setBarWidth(
-                event.nativeEvent.layout.width
+                event.nativeEvent.layout
+                  .width
               );
             }}
           >
@@ -114,28 +123,23 @@ function LiquidGlassTabBar({
 
                 let iconName: any;
 
-                if (route.name === 'index') {
+                // HOME
+                if (
+                  route.name === 'index'
+                ) {
                   iconName = focused
                     ? 'home'
                     : 'home-outline';
                 }
 
-                if (route.name === 'expenses') {
+                // EXPENSES
+                if (
+                  route.name ===
+                  'expenses'
+                ) {
                   iconName = focused
                     ? 'card'
                     : 'card-outline';
-                }
-
-                if (route.name === 'budgets') {
-                  iconName = focused
-                    ? 'wallet'
-                    : 'wallet-outline';
-                }
-
-                if (route.name === 'reports') {
-                  iconName = focused
-                    ? 'pie-chart'
-                    : 'pie-chart-outline';
                 }
 
                 const onPress = () => {
@@ -143,7 +147,8 @@ function LiquidGlassTabBar({
                     navigation.emit({
                       type: 'tabPress',
                       target: route.key,
-                      canPreventDefault: true,
+                      canPreventDefault:
+                        true,
                     });
 
                   if (
@@ -177,13 +182,23 @@ function LiquidGlassTabBar({
                       options.tabBarButtonTestID
                     }
                     onPress={onPress}
-                    onLongPress={onLongPress}
+                    onLongPress={
+                      onLongPress
+                    }
                     style={styles.tab}
                   >
-                    <View style={styles.tabContent}>
+                    <View
+                      style={
+                        styles.tabContent
+                      }
+                    >
                       <Ionicons
                         name={iconName}
-                        size={focused ? 23 : 22}
+                        size={
+                          focused
+                            ? 23
+                            : 22
+                        }
                         color={color}
                       />
 
@@ -192,9 +207,10 @@ function LiquidGlassTabBar({
                           styles.label,
                           {
                             color,
-                            fontWeight: focused
-                              ? '700'
-                              : '500',
+                            fontWeight:
+                              focused
+                                ? '700'
+                                : '500',
                           },
                         ]}
                       >
@@ -217,18 +233,24 @@ export default function TabLayout() {
   return (
     <Tabs
       tabBar={(props) => (
-        <LiquidGlassTabBar {...props} />
+        <LiquidGlassTabBar
+          {...props}
+        />
       )}
       screenOptions={{
         headerShown: false,
       }}
     >
+      {/* HOME */}
+
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
         }}
       />
+
+      {/* EXPENSES */}
 
       <Tabs.Screen
         name="expenses"
@@ -237,17 +259,19 @@ export default function TabLayout() {
         }}
       />
 
+      {/* Hide these if the files still exist */}
+
       <Tabs.Screen
         name="budgets"
         options={{
-          title: 'Budgets',
+          href: null,
         }}
       />
 
       <Tabs.Screen
         name="reports"
         options={{
-          title: 'Reports',
+          href: null,
         }}
       />
     </Tabs>
@@ -295,9 +319,6 @@ const styles = StyleSheet.create({
 
     overflow: 'hidden',
 
-    /*
-     * Main glass transparency
-     */
     backgroundColor:
       'rgba(255,255,255,0.20)',
 
@@ -307,9 +328,6 @@ const styles = StyleSheet.create({
       'rgba(255,255,255,0.60)',
   },
 
-  /*
-   * Thin reflection across the top
-   */
   glassHighlight: {
     position: 'absolute',
 
@@ -361,9 +379,6 @@ const styles = StyleSheet.create({
     gap: 2,
   },
 
-  /*
-   * Moving glass capsule
-   */
   activeGlass: {
     position: 'absolute',
 
@@ -375,9 +390,6 @@ const styles = StyleSheet.create({
 
     borderRadius: 30,
 
-    /*
-     * Transparent active glass
-     */
     backgroundColor:
       'rgba(255,255,255,0.38)',
 
@@ -402,9 +414,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
 
-  /*
-   * Small reflection inside active glass
-   */
   activeInner: {
     position: 'absolute',
 

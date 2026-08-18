@@ -33,7 +33,7 @@ type Category = {
 };
 
 type Expense = {
-  id: string;
+  id: number;
   name: string;
   category: string;
   amount: number;
@@ -98,7 +98,7 @@ export default function ExpensesScreen() {
 
       const formattedExpenses: Expense[] = data.map(
         (item) => ({
-          id: item.id.toString(),
+          id: Number(item.id),
           name: item.description,
           category: item.category,
           amount: item.amount,
@@ -180,7 +180,9 @@ export default function ExpensesScreen() {
   // DELETE EXPENSE
   // =========================
 
-  const handleDeleteExpense = (expense: Expense) => {
+  const handleDeleteExpense = (
+    expense: Expense
+  ) => {
     Alert.alert(
       'Delete Expense',
       `Delete "${expense.name}" for ₱${expense.amount.toLocaleString(
@@ -197,10 +199,23 @@ export default function ExpensesScreen() {
         {
           text: 'Delete',
           style: 'destructive',
+
           onPress: async () => {
             try {
+              console.log(
+                'Deleting expense:',
+                expense.id
+              );
+
               await deleteExpense(
-                Number(expense.id)
+                expense.id
+              );
+
+              setExpenses((current) =>
+                current.filter(
+                  (item) =>
+                    item.id !== expense.id
+                )
               );
 
               await loadExpenses();
@@ -208,6 +223,11 @@ export default function ExpensesScreen() {
               console.error(
                 'Failed to delete expense:',
                 error
+              );
+
+              Alert.alert(
+                'Error',
+                'Could not delete this expense.'
               );
             }
           },
@@ -320,7 +340,7 @@ export default function ExpensesScreen() {
 
       if (editingExpense) {
         await updateExpense(
-          Number(editingExpense.id),
+          editingExpense.id,
           expenseData
         );
       } else {
@@ -361,49 +381,66 @@ export default function ExpensesScreen() {
   };
 
   // =========================
-  // UI
+  // SAVE PRESET
   // =========================
 
   const savePreset = async () => {
-  const numericAmount = Number(presetAmount);
+    const numericAmount =
+      Number(presetAmount);
 
-  if (
-    !presetName.trim() ||
-    !presetAmount ||
-    numericAmount <= 0
-  ) {
-    return;
-  }
+    if (
+      !presetName.trim() ||
+      !presetAmount ||
+      numericAmount <= 0
+    ) {
+      return;
+    }
 
-  const selectedCategoryData = categories.find(
-    (category) =>
-      category.name === presetCategory
-  );
+    const selectedCategoryData =
+      categories.find(
+        (category) =>
+          category.name === presetCategory
+      );
 
-  try {
-    await addPreset({
-      name: presetName.trim(),
-      amount: numericAmount,
-      category: presetCategory,
-      emoji: selectedCategoryData?.emoji ?? '💸',
-      notes: presetNotes.trim(),
-    });
+    try {
+      await addPreset({
+        name: presetName.trim(),
+        amount: numericAmount,
+        category: presetCategory,
+        emoji:
+          selectedCategoryData?.emoji ??
+          '💸',
+        notes: presetNotes.trim(),
+      });
 
-    await loadPresets();
+      await loadPresets();
 
-    setPresetName('');
-    setPresetAmount('');
-    setPresetCategory('Transport');
-    setPresetNotes('');
+      setPresetName('');
+      setPresetAmount('');
+      setPresetCategory('Transport');
+      setPresetNotes('');
 
-    setPresetModalVisible(false);
-  } catch (error) {
-    console.error(
-      'Failed to save preset:',
-      error
-    );
-  }
-};
+      setPresetModalVisible(false);
+    } catch (error) {
+      console.error(
+        'Failed to save preset:',
+        error
+      );
+    }
+  };
+
+  // =========================
+  // INPUT STYLE
+  // =========================
+
+  const webInputStyle = Platform.select({
+    web: {
+      outlineStyle: 'none' as const,
+      outlineWidth: 0,
+      outlineColor: 'transparent',
+    },
+    default: {},
+  });
 
   return (
     <View style={styles.container}>
@@ -505,7 +542,9 @@ export default function ExpensesScreen() {
 
       <FlatList
         data={expenses}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) =>
+          item.id.toString()
+        }
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
@@ -655,7 +694,10 @@ export default function ExpensesScreen() {
                 </Text>
 
                 <TextInput
-                  style={styles.amountInput}
+                  style={[
+                    styles.amountInput,
+                    webInputStyle,
+                  ]}
                   placeholder="0.00"
                   placeholderTextColor="#AAAAAA"
                   keyboardType="decimal-pad"
@@ -671,7 +713,10 @@ export default function ExpensesScreen() {
               </Text>
 
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  webInputStyle,
+                ]}
                 placeholder="What did you spend on?"
                 placeholderTextColor="#999"
                 value={description}
@@ -765,7 +810,6 @@ export default function ExpensesScreen() {
                     styles.calendarContainer
                   }
                 >
-
                   <View
                     style={
                       styles.calendarHeader
@@ -895,7 +939,6 @@ export default function ExpensesScreen() {
                       }
                     )}
                   </View>
-
                 </View>
               )}
 
@@ -911,7 +954,10 @@ export default function ExpensesScreen() {
               </Text>
 
               <TextInput
-                style={styles.notesInput}
+                style={[
+                  styles.notesInput,
+                  webInputStyle,
+                ]}
                 placeholder="Add a note..."
                 placeholderTextColor="#999"
                 multiline
@@ -961,12 +1007,10 @@ export default function ExpensesScreen() {
               </Pressable>
 
             </ScrollView>
-
           </View>
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* PRESET MODAL WILL BE ADDED NEXT */}
       {/* CREATE PRESET MODAL */}
 
       <Modal
@@ -992,8 +1036,6 @@ export default function ExpensesScreen() {
               keyboardShouldPersistTaps="handled"
             >
 
-              {/* Header */}
-
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
                   Create Preset
@@ -1010,21 +1052,24 @@ export default function ExpensesScreen() {
                 </Pressable>
               </View>
 
-              {/* Name */}
+              {/* NAME */}
 
               <Text style={styles.inputLabel}>
                 Name
               </Text>
 
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  webInputStyle,
+                ]}
                 placeholder="e.g. Daily Transpo"
                 placeholderTextColor="#999"
                 value={presetName}
                 onChangeText={setPresetName}
               />
 
-              {/* Amount */}
+              {/* AMOUNT */}
 
               <Text style={styles.inputLabel}>
                 Amount
@@ -1036,7 +1081,10 @@ export default function ExpensesScreen() {
                 </Text>
 
                 <TextInput
-                  style={styles.amountInput}
+                  style={[
+                    styles.amountInput,
+                    webInputStyle,
+                  ]}
                   placeholder="0.00"
                   placeholderTextColor="#AAAAAA"
                   keyboardType="decimal-pad"
@@ -1045,7 +1093,7 @@ export default function ExpensesScreen() {
                 />
               </View>
 
-              {/* Category */}
+              {/* CATEGORY */}
 
               <Text style={styles.inputLabel}>
                 Category
@@ -1093,7 +1141,7 @@ export default function ExpensesScreen() {
                 })}
               </View>
 
-              {/* Notes */}
+              {/* NOTES */}
 
               <Text style={styles.inputLabel}>
                 Notes{' '}
@@ -1103,7 +1151,10 @@ export default function ExpensesScreen() {
               </Text>
 
               <TextInput
-                style={styles.notesInput}
+                style={[
+                  styles.notesInput,
+                  webInputStyle,
+                ]}
                 placeholder="e.g. Daily commute"
                 placeholderTextColor="#999"
                 multiline
@@ -1112,7 +1163,7 @@ export default function ExpensesScreen() {
                 textAlignVertical="top"
               />
 
-              {/* Save Preset */}
+              {/* SAVE PRESET */}
 
               <Pressable
                 style={[
@@ -1134,7 +1185,7 @@ export default function ExpensesScreen() {
                 </Text>
               </Pressable>
 
-              {/* Cancel */}
+              {/* CANCEL */}
 
               <Pressable
                 style={styles.cancelButton}
@@ -1142,16 +1193,20 @@ export default function ExpensesScreen() {
                   setPresetModalVisible(false)
                 }
               >
-                <Text style={styles.cancelButtonText}>
+                <Text
+                  style={
+                    styles.cancelButtonText
+                  }
+                >
                   Cancel
                 </Text>
               </Pressable>
 
             </ScrollView>
-
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
     </View>
   );
 }

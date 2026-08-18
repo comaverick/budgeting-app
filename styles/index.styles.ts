@@ -485,7 +485,12 @@ export const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '600',
     color: '#111111',
-  },
+
+    // Remove browser focus outline on web
+    outlineStyle: 'none',
+    outlineWidth: 0,
+    outlineColor: 'transparent',
+    } as any,
 
   saveButton: {
     height: 52,
